@@ -1,13 +1,13 @@
 {
   "name": "soundcloud",
-  "author": "mac",
+  "author": "TropinAlexey",
   "title": "SoundCloud",
   "description": "Download tracks and playlists from SoundCloud",
   "icon": "icon.png",
   "version": "1.0.0",
-  "homepage": "https://github.com/",
+  "homepage": "https://github.com/TropinAlexey/gopeed-extension-soundcloud",
   "repository": {
-    "url": "https://github.com/"
+    "url": "https://github.com/TropinAlexey/gopeed-extension-soundcloud"
   },
   "scripts": [
     {
