@@ -1,1 +1,235 @@
-(()=>{"use strict";function t(t,e){if(t){if("string"==typeof t)return r(t,e);var n={}.toString.call(t).slice(8,-1);return"Object"===n&&t.constructor&&(n=t.constructor.name),"Map"===n||"Set"===n?Array.from(t):"Arguments"===n||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)?r(t,e):void 0}}function r(t,r){(null==r||r>t.length)&&(r=t.length);for(var e=0,n=Array(r);e<r;e++)n[e]=t[e];return n}var e="sc_client_id",n="3zaZfWDfnerez7S2gCmLG26KC2e2Q5zy";async function o(){gopeed.logger.info("Extracting SoundCloud client_id...");var n,o=(n=(await fetch("https://soundcloud.com").then(function(t){return t.text()})).matchAll(/src="(https:\/\/a-v2\.sndcdn\.com\/assets\/[^"]+\.js)"/g),function(t){if(Array.isArray(t))return r(t)}(n)||function(t){if("undefined"!=typeof Symbol&&null!=t[Symbol.iterator]||null!=t["@@iterator"])return Array.from(t)}(n)||t(n)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()).map(function(t){return t[1]});if(0===o.length)throw new Error("Could not find SoundCloud script URLs");var a,i=function(r){var e="undefined"!=typeof Symbol&&r[Symbol.iterator]||r["@@iterator"];if(!e){if(Array.isArray(r)||(e=t(r))){e&&(r=e);var n=0,o=function(){};return{s:o,n:function(){return n>=r.length?{done:!0}:{done:!1,value:r[n++]}},e:function(t){throw t},f:o}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var a,i=!0,c=!1;return{s:function(){e=e.call(r)},n:function(){var t=e.next();return i=t.done,t},e:function(t){c=!0,a=t},f:function(){try{i||null==e.return||e.return()}finally{if(c)throw a}}}}(o.slice(-5).reverse());try{for(i.s();!(a=i.n()).done;){var c=a.value;try{var l=await fetch(c).then(function(t){return t.text()}),s=l.match(/[,{(]client_id:"([a-zA-Z0-9]{20,40})"/)||l.match(/client_id\s*[:=]\s*"([a-zA-Z0-9]{20,40})"/)||l.match(/"client_id"\s*:\s*"([a-zA-Z0-9]{20,40})"/);if(s){var u=s[1];return gopeed.storage.set(e,u),gopeed.logger.info("Extracted client_id: ".concat(u)),u}}catch(t){gopeed.logger.warn("Failed to parse script ".concat(c,": ").concat(t.message))}}}catch(t){i.e(t)}finally{i.f()}throw new Error('Could not extract client_id. Set it manually in extension settings.\nFind it at: https://soundcloud.com → DevTools → Network → filter "client_id"')}async function a(t,r){var i=(arguments.length>2&&void 0!==arguments[2]?arguments[2]:{})._retried,c=void 0!==i&&i,l=t.includes("?")?"&":"?",s=await fetch("".concat(t).concat(l,"client_id=").concat(r),{headers:{"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}});if(!s.ok){if(401===s.status||403===s.status){if(gopeed.storage.remove(e),!c)return gopeed.logger.warn("client_id rejected (".concat(s.status,"), re-extracting and retrying...")),a(t,await o().catch(function(){return n}),{_retried:!0});throw new Error("client_id invalid even after re-extraction. Set it manually in extension settings.")}if(404===s.status)throw new Error("Track not found or is private");throw new Error("SoundCloud API error ".concat(s.status," for: ").concat(t))}return s.json()}async function i(t,r){return a("".concat("https://api-v2.soundcloud.com/resolve","?url=").concat(encodeURIComponent(t)),r)}function c(t){return(t||"track").replace(/[/\\?%*:|"<>]/g,"-").trim()}async function l(t,r){var e,n=function(t){if(!t||0===t.length)return null;var r=gopeed.settings.quality||"progressive";return"progressive"===r?t.find(function(t){return"progressive"===t.format.protocol&&t.format.mime_type.includes("mpeg")})||t.find(function(t){return"progressive"===t.format.protocol})||t.find(function(t){return"hls"===t.format.protocol&&t.format.mime_type.includes("aac")})||t[0]:"hls_aac"===r?t.find(function(t){return"hls"===t.format.protocol&&t.format.mime_type.includes("aac")})||t.find(function(t){return"progressive"===t.format.protocol})||t[0]:t.find(function(t){return"progressive"===t.format.protocol})||t.find(function(t){return"hls"===t.format.protocol&&t.format.mime_type.includes("aac")})||t[0]}(null===(e=t.media)||void 0===e?void 0:e.transcodings);if(!n)throw new Error("No streamable format for: ".concat(t.title));gopeed.logger.info('Track "'.concat(t.title,'" → protocol=').concat(n.format.protocol," mime=").concat(n.format.mime_type));var o,i=await async function(t,r){var e=await a(t,r);if(!e.url)throw new Error("No URL in transcoding response: ".concat(JSON.stringify(e)));return e.url}(n.url,r),l=(o=n.format.mime_type)?o.includes("mpeg")?".mp3":o.includes("aac")||o.includes("mp4")?".m4a":o.includes("opus")||o.includes("ogg")?".ogg":".mp3":".mp3",s=t.permalink?"".concat(c(t.permalink)," - "):"";return{name:"".concat(s).concat(c(t.title)).concat(l),req:{url:i}}}gopeed.events.onResolve(async function(t){var r=await async function(){var t=gopeed.settings.clientId;if(t&&t.trim())return t.trim();var r=gopeed.storage.get(e);if(r)return r;try{return await o()}catch(t){return gopeed.logger.warn("Auto-extraction failed, using fallback client_id: ".concat(t.message)),n}}(),a=await i(t.req.url,r);if(gopeed.logger.info("Resolved kind=".concat(a.kind,' title="').concat(a.title,'"')),"track"!==a.kind){if("playlist"!==a.kind)throw new Error("Unsupported SoundCloud resource type: ".concat(a.kind));for(var s=a.tracks||[],u=[],f=0;f<s.length;f++){var d=s[f];if(!d.media)try{d=await i(d.permalink_url,r)}catch(t){gopeed.logger.warn('Skipping stub track "'.concat(d.title,'": ').concat(t.message));continue}try{var m=await l(d,r);u.push(m)}catch(t){gopeed.logger.warn('Skipping track "'.concat(d.title,'": ').concat(t.message))}}if(0===u.length)throw new Error("No downloadable tracks found in playlist");t.res={name:c(a.title),files:u}}else{var g=await l(a,r);t.res={name:c(a.title),files:[g]}}})})();
+const RESOLVE_URL = 'https://api-v2.soundcloud.com/resolve';
+const CLIENT_ID_CACHE_KEY = 'sc_client_id';
+// Fallback client_id — updated periodically, used if auto-extraction fails
+const FALLBACK_CLIENT_ID = '3zaZfWDfnerez7S2gCmLG26KC2e2Q5zy';
+
+// ── Client ID ─────────────────────────────────────────────────────────────────
+
+async function getClientId() {
+  const manual = gopeed.settings.clientId;
+  if (manual && manual.trim()) return manual.trim();
+
+  const cached = gopeed.storage.get(CLIENT_ID_CACHE_KEY);
+  if (cached) return cached;
+
+  try {
+    return await extractClientId();
+  } catch (e) {
+    gopeed.logger.warn(`Auto-extraction failed, using fallback client_id: ${e.message}`);
+    return FALLBACK_CLIENT_ID;
+  }
+}
+
+async function extractClientId() {
+  gopeed.logger.info('Extracting SoundCloud client_id...');
+
+  const html = await fetch('https://soundcloud.com').then((r) => r.text());
+
+  const scriptUrls = [...html.matchAll(/src="(https:\/\/a-v2\.sndcdn\.com\/assets\/[^"]+\.js)"/g)].map(
+    (m) => m[1]
+  );
+
+  if (scriptUrls.length === 0) {
+    throw new Error('Could not find SoundCloud script URLs');
+  }
+
+  for (const url of scriptUrls.slice(-5).reverse()) {
+    try {
+      const js = await fetch(url).then((r) => r.text());
+      // Try multiple patterns SoundCloud uses across versions
+      const match =
+        js.match(/[,{(]client_id:"([a-zA-Z0-9]{20,40})"/) ||
+        js.match(/client_id\s*[:=]\s*"([a-zA-Z0-9]{20,40})"/) ||
+        js.match(/"client_id"\s*:\s*"([a-zA-Z0-9]{20,40})"/);
+      if (match) {
+        const id = match[1];
+        gopeed.storage.set(CLIENT_ID_CACHE_KEY, id);
+        gopeed.logger.info(`Extracted client_id: ${id}`);
+        return id;
+      }
+    } catch (e) {
+      gopeed.logger.warn(`Failed to parse script ${url}: ${e.message}`);
+    }
+  }
+
+  throw new Error(
+    'Could not extract client_id. Set it manually in extension settings.\n' +
+      'Find it at: https://soundcloud.com → DevTools → Network → filter "client_id"'
+  );
+}
+
+// ── SoundCloud API ────────────────────────────────────────────────────────────
+
+async function scGet(url, clientId, { _retried = false } = {}) {
+  const sep = url.includes('?') ? '&' : '?';
+  const res = await fetch(`${url}${sep}client_id=${clientId}`, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      gopeed.storage.remove(CLIENT_ID_CACHE_KEY);
+
+      if (!_retried) {
+        // Re-extract fresh client_id and retry once automatically
+        gopeed.logger.warn(`client_id rejected (${res.status}), re-extracting and retrying...`);
+        const freshId = await extractClientId().catch(() => FALLBACK_CLIENT_ID);
+        return scGet(url, freshId, { _retried: true });
+      }
+
+      throw new Error('client_id invalid even after re-extraction. Set it manually in extension settings.');
+    }
+    if (res.status === 404) throw new Error('Track not found or is private');
+    throw new Error(`SoundCloud API error ${res.status} for: ${url}`);
+  }
+
+  return res.json();
+}
+
+async function resolveUrl(url, clientId) {
+  return scGet(`${RESOLVE_URL}?url=${encodeURIComponent(url)}`, clientId);
+}
+
+async function getStreamUrl(transcodingUrl, clientId) {
+  const data = await scGet(transcodingUrl, clientId);
+  if (!data.url) throw new Error(`No URL in transcoding response: ${JSON.stringify(data)}`);
+  return data.url;
+}
+
+// ── Transcoding selection ─────────────────────────────────────────────────────
+
+function pickTranscoding(transcodings) {
+  if (!transcodings || transcodings.length === 0) return null;
+
+  const quality = gopeed.settings.quality || 'progressive';
+
+  if (quality === 'progressive') {
+    return (
+      transcodings.find((t) => t.format.protocol === 'progressive' && t.format.mime_type.includes('mpeg')) ||
+      transcodings.find((t) => t.format.protocol === 'progressive') ||
+      transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
+      transcodings[0]
+    );
+  }
+
+  if (quality === 'hls_aac') {
+    return (
+      transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
+      transcodings.find((t) => t.format.protocol === 'progressive') ||
+      transcodings[0]
+    );
+  }
+
+  // auto: progressive → hls aac → anything
+  return (
+    transcodings.find((t) => t.format.protocol === 'progressive') ||
+    transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
+    transcodings[0]
+  );
+}
+
+function extFromMime(mimeType) {
+  if (!mimeType) return '.mp3';
+  if (mimeType.includes('mpeg')) return '.mp3';
+  if (mimeType.includes('aac') || mimeType.includes('mp4')) return '.m4a';
+  if (mimeType.includes('opus') || mimeType.includes('ogg')) return '.ogg';
+  return '.mp3';
+}
+
+function sanitize(name) {
+  return (name || 'track').replace(/[/\\?%*:|"<>]/g, '-').trim();
+}
+
+// ── Track resolution ──────────────────────────────────────────────────────────
+
+async function buildFileFromTrack(track, clientId) {
+  const transcodings = track.media?.transcodings;
+  const transcoding = pickTranscoding(transcodings);
+
+  if (!transcoding) {
+    throw new Error(`No streamable format for: ${track.title}`);
+  }
+
+  gopeed.logger.info(
+    `Track "${track.title}" → protocol=${transcoding.format.protocol} mime=${transcoding.format.mime_type}`
+  );
+
+  const streamUrl = await getStreamUrl(transcoding.url, clientId);
+  const ext = extFromMime(transcoding.format.mime_type);
+
+  // Format: "permalink - Title.mp3"  e.g. "yayati - The greatest final.mp3"
+  const prefix = track.permalink ? `${sanitize(track.permalink)} - ` : '';
+  return {
+    name: `${prefix}${sanitize(track.title)}${ext}`,
+    req: {
+      url: streamUrl,
+    },
+  };
+}
+
+// ── Main event ────────────────────────────────────────────────────────────────
+
+gopeed.events.onResolve(async (ctx) => {
+  if (!gopeed.storage.get('chrome_ext_notified')) {
+    gopeed.storage.set('chrome_ext_notified', true);
+    gopeed.logger.info(
+      '💡 Tip: install the SoundCloud→Gopeed Chrome extension for one-click downloads directly on SoundCloud pages: ' +
+        'https://chromewebstore.google.com/detail/soundcloud-gopeed/jnlfajhpbkonkfcndefbkdmpifcmlonf'
+    );
+  }
+
+  const clientId = await getClientId();
+  const data = await resolveUrl(ctx.req.url, clientId);
+
+  gopeed.logger.info(`Resolved kind=${data.kind} title="${data.title}"`);
+
+  if (data.kind === 'track') {
+    const file = await buildFileFromTrack(data, clientId);
+    ctx.res = {
+      name: sanitize(data.title),
+      files: [file],
+    };
+    return;
+  }
+
+  if (data.kind === 'playlist') {
+    const tracks = data.tracks || [];
+    const files = [];
+
+    for (let i = 0; i < tracks.length; i++) {
+      let track = tracks[i];
+
+      // Playlist may contain stub tracks without media — resolve them individually
+      if (!track.media) {
+        try {
+          track = await resolveUrl(track.permalink_url, clientId);
+        } catch (e) {
+          gopeed.logger.warn(`Skipping stub track "${track.title}": ${e.message}`);
+          continue;
+        }
+      }
+
+      try {
+        const file = await buildFileFromTrack(track, clientId);
+        files.push(file);
+      } catch (e) {
+        gopeed.logger.warn(`Skipping track "${track.title}": ${e.message}`);
+      }
+    }
+
+    if (files.length === 0) {
+      throw new Error('No downloadable tracks found in playlist');
+    }
+
+    ctx.res = {
+      name: sanitize(data.title),
+      files,
+    };
+    return;
+  }
+
+  throw new Error(`Unsupported SoundCloud resource type: ${data.kind}`);
+});

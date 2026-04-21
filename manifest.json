@@ -2,7 +2,7 @@
   "name": "soundcloud",
   "author": "TropinAlexey",
   "title": "SoundCloud",
-  "description": "Download tracks and playlists from SoundCloud",
+  "description": "Download tracks and playlists from SoundCloud. Pair with the Chrome extension for one-click downloads: https://chromewebstore.google.com/detail/soundcloud-gopeed/jnlfajhpbkonkfcndefbkdmpifcmlonf",
   "icon": "icon.png",
   "version": "1.0.0",
   "homepage": "https://github.com/TropinAlexey/gopeed-extension-soundcloud",
