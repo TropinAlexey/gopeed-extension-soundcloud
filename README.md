@@ -46,13 +46,6 @@ Once installed, clicking the button sends the current track or playlist URL to G
 3. Selects the best audio transcoding (progressive MP3 preferred)
 4. Fetches the actual CDN stream URL and passes it to Gopeed
 
-## Build from source
-
-```bash
-npm install
-npm run build   # outputs dist/index.js
-```
-
 ## License
 
 MIT

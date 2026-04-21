@@ -60,7 +60,7 @@ async function extractClientId() {
 
 // ── SoundCloud API ────────────────────────────────────────────────────────────
 
-async function scGet(url, clientId) {
+async function scGet(url, clientId, { _retried = false } = {}) {
   const sep = url.includes('?') ? '&' : '?';
   const res = await fetch(`${url}${sep}client_id=${clientId}`, {
     headers: {
@@ -70,9 +70,17 @@ async function scGet(url, clientId) {
   });
 
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 || res.status === 403) {
       gopeed.storage.remove(CLIENT_ID_CACHE_KEY);
-      throw new Error('Invalid client_id (cleared cache, retry will re-extract)');
+
+      if (!_retried) {
+        // Re-extract fresh client_id and retry once automatically
+        gopeed.logger.warn(`client_id rejected (${res.status}), re-extracting and retrying...`);
+        const freshId = await extractClientId().catch(() => FALLBACK_CLIENT_ID);
+        return scGet(url, freshId, { _retried: true });
+      }
+
+      throw new Error('client_id invalid even after re-extraction. Set it manually in extension settings.');
     }
     if (res.status === 404) throw new Error('Track not found or is private');
     throw new Error(`SoundCloud API error ${res.status} for: ${url}`);
