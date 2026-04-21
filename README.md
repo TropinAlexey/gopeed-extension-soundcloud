@@ -26,7 +26,7 @@ Example: `yayati - The greatest final.mp3`
 
 ## Browser button (optional)
 
-Install [soundcloud-gopeed-button](https://github.com/TropinAlexey/soundcloud-gopeed-button) — a Chrome extension that adds a native **Download** button directly on SoundCloud pages.
+Install **[soundcloud-gopeed-button](https://github.com/TropinAlexey/soundcloud-gopeed-button)** — a Chrome extension that adds a native **Download** button directly on SoundCloud pages.
 
 Once installed, clicking the button sends the current track or playlist URL to Gopeed automatically.
 
