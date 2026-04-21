@@ -152,8 +152,10 @@ async function buildFileFromTrack(track, clientId) {
   const streamUrl = await getStreamUrl(transcoding.url, clientId);
   const ext = extFromMime(transcoding.format.mime_type);
 
+  // Format: "permalink - Title.mp3"  e.g. "yayati - The greatest final.mp3"
+  const prefix = track.permalink ? `${sanitize(track.permalink)} - ` : '';
   return {
-    name: `${sanitize(track.title)}${ext}`,
+    name: `${prefix}${sanitize(track.title)}${ext}`,
     req: {
       url: streamUrl,
     },
