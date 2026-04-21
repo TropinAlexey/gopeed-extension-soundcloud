@@ -24,7 +24,7 @@ The extension resolves the audio stream automatically and starts the download.
 **File naming:** `permalink - Title.mp3`  
 Example: `yayati - The greatest final.mp3`
 
-## Browser button (optional)
+## Browser button
 
 Install **[soundcloud-gopeed-button](https://github.com/TropinAlexey/soundcloud-gopeed-button)** — a Chrome extension that adds a native **Download** button directly on SoundCloud pages.
 
