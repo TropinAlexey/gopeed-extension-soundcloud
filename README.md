@@ -30,8 +30,6 @@ Install **[soundcloud-gopeed-button](https://github.com/TropinAlexey/soundcloud-
 
 Once installed, clicking the button sends the current track or playlist URL to Gopeed automatically.
 
-![SoundCloud Download button](https://raw.githubusercontent.com/TropinAlexey/gopeed-extension-soundcloud/main/screenshot.png)
-
 ## Settings
 
 | Setting | Default | Description |
