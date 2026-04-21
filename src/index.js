@@ -1,5 +1,7 @@
 const RESOLVE_URL = 'https://api-v2.soundcloud.com/resolve';
 const CLIENT_ID_CACHE_KEY = 'sc_client_id';
+// Fallback client_id — updated periodically, used if auto-extraction fails
+const FALLBACK_CLIENT_ID = '3zaZfWDfnerez7S2gCmLG26KC2e2Q5zy';
 
 // ── Client ID ─────────────────────────────────────────────────────────────────
 
@@ -10,7 +12,12 @@ async function getClientId() {
   const cached = gopeed.storage.get(CLIENT_ID_CACHE_KEY);
   if (cached) return cached;
 
-  return extractClientId();
+  try {
+    return await extractClientId();
+  } catch (e) {
+    gopeed.logger.warn(`Auto-extraction failed, using fallback client_id: ${e.message}`);
+    return FALLBACK_CLIENT_ID;
+  }
 }
 
 async function extractClientId() {
@@ -29,7 +36,11 @@ async function extractClientId() {
   for (const url of scriptUrls.slice(-5).reverse()) {
     try {
       const js = await fetch(url).then((r) => r.text());
-      const match = js.match(/[,{(]client_id:"([a-zA-Z0-9]{20,32})"/);
+      // Try multiple patterns SoundCloud uses across versions
+      const match =
+        js.match(/[,{(]client_id:"([a-zA-Z0-9]{20,40})"/) ||
+        js.match(/client_id\s*[:=]\s*"([a-zA-Z0-9]{20,40})"/) ||
+        js.match(/"client_id"\s*:\s*"([a-zA-Z0-9]{20,40})"/);
       if (match) {
         const id = match[1];
         gopeed.storage.set(CLIENT_ID_CACHE_KEY, id);
