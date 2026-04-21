@@ -1,0 +1,55 @@
+{
+  "name": "soundcloud",
+  "author": "mac",
+  "title": "SoundCloud",
+  "description": "Download tracks and playlists from SoundCloud",
+  "icon": "icon.png",
+  "version": "1.0.0",
+  "homepage": "https://github.com/",
+  "repository": {
+    "url": "https://github.com/"
+  },
+  "scripts": [
+    {
+      "event": "onResolve",
+      "match": {
+        "urls": [
+          "*://soundcloud.com/*/*",
+          "*://www.soundcloud.com/*/*",
+          "*://m.soundcloud.com/*/*"
+        ]
+      },
+      "entry": "dist/index.js"
+    }
+  ],
+  "settings": [
+    {
+      "name": "clientId",
+      "title": "Client ID (optional)",
+      "description": "SoundCloud client_id. Leave empty for auto-detection.",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "quality",
+      "title": "Quality",
+      "description": "Preferred audio quality",
+      "type": "string",
+      "value": "progressive",
+      "options": [
+        {
+          "label": "Progressive MP3 (best for direct download)",
+          "value": "progressive"
+        },
+        {
+          "label": "HLS AAC 160kbps",
+          "value": "hls_aac"
+        },
+        {
+          "label": "Any (auto)",
+          "value": "auto"
+        }
+      ]
+    }
+  ]
+}
