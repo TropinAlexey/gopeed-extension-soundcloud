@@ -8,7 +8,7 @@ Download tracks and playlists from SoundCloud directly via [Gopeed](https://gope
 
 ## Installation
 
-In Gopeed → **Extensions** → **Install**, paste:
+In Gopeed → **Extensions** → **Manual Install**, paste:
 
 ```
 https://github.com/TropinAlexey/gopeed-extension-soundcloud
@@ -16,12 +16,8 @@ https://github.com/TropinAlexey/gopeed-extension-soundcloud
 
 ## Usage
 
-Paste any SoundCloud URL into Gopeed's download dialog:
-
-```
-https://soundcloud.com/artist/trackname
-https://soundcloud.com/artist/sets/playlistname
-```
+Go to any SoundCloud URL, click track name, press button "Download":
+<img width="478" height="57" alt="image" src="https://github.com/user-attachments/assets/981dfd5c-5611-44aa-a7a3-66839be7d3d8" />
 
 The extension resolves the audio stream automatically and starts the download.
 
