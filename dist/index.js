@@ -161,7 +161,7 @@ async function buildFileFromTrack(track, clientId) {
   const ext = extFromMime(transcoding.format.mime_type);
 
   // Format: "Artist - Title.mp3"  e.g. "YAYATI - The greatest final.mp3"
-  const artist = track.publisher_metadata?.artist || track.user?.username || track.user?.permalink || '';
+  const artist = track.publisher_metadata?.artist || track.user?.permalink || track.user?.username || '';
   const prefix = artist ? `${sanitize(artist)} - ` : '';
   return {
     name: `${prefix}${sanitize(track.title)}${ext}`,
