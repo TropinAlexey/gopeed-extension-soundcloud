@@ -160,9 +160,8 @@ async function buildFileFromTrack(track, clientId) {
   const streamUrl = await getStreamUrl(transcoding.url, clientId);
   const ext = extFromMime(transcoding.format.mime_type);
 
-  gopeed.logger.info(`Track user: ${JSON.stringify(track.user)}`);
   // Format: "Artist - Title.mp3"  e.g. "YAYATI - The greatest final.mp3"
-  const artist = track.user?.username || track.user?.permalink || '';
+  const artist = track.publisher_metadata?.artist || track.user?.username || track.user?.permalink || '';
   const prefix = artist ? `${sanitize(artist)} - ` : '';
   return {
     name: `${prefix}${sanitize(track.title)}${ext}`,
