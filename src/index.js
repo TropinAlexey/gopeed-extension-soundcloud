@@ -101,34 +101,26 @@ async function getStreamUrl(transcodingUrl, clientId) {
 
 // ── Transcoding selection ─────────────────────────────────────────────────────
 
-function pickTranscoding(transcodings) {
+const isMpegProgressive = (t) => t.format.protocol === 'progressive' && t.format.mime_type.includes('mpeg');
+const isProgressive = (t) => t.format.protocol === 'progressive';
+const isHlsAac = (t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac');
+
+// Priority list per quality setting; first matching predicate wins, then any transcoding.
+const QUALITY_PRIORITY = {
+  progressive: [isMpegProgressive, isProgressive, isHlsAac],
+  hls_aac: [isHlsAac, isProgressive],
+  auto: [isProgressive, isHlsAac],
+};
+
+function pickTranscoding(transcodings, quality = gopeed.settings.quality || 'progressive') {
   if (!transcodings || transcodings.length === 0) return null;
 
-  const quality = gopeed.settings.quality || 'progressive';
-
-  if (quality === 'progressive') {
-    return (
-      transcodings.find((t) => t.format.protocol === 'progressive' && t.format.mime_type.includes('mpeg')) ||
-      transcodings.find((t) => t.format.protocol === 'progressive') ||
-      transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
-      transcodings[0]
-    );
+  const priority = QUALITY_PRIORITY[quality] || QUALITY_PRIORITY.auto;
+  for (const predicate of priority) {
+    const match = transcodings.find(predicate);
+    if (match) return match;
   }
-
-  if (quality === 'hls_aac') {
-    return (
-      transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
-      transcodings.find((t) => t.format.protocol === 'progressive') ||
-      transcodings[0]
-    );
-  }
-
-  // auto: progressive → hls aac → anything
-  return (
-    transcodings.find((t) => t.format.protocol === 'progressive') ||
-    transcodings.find((t) => t.format.protocol === 'hls' && t.format.mime_type.includes('aac')) ||
-    transcodings[0]
-  );
+  return transcodings[0];
 }
 
 function extFromMime(mimeType) {
@@ -173,64 +165,69 @@ async function buildFileFromTrack(track, clientId) {
 
 // ── Main event ────────────────────────────────────────────────────────────────
 
-gopeed.events.onResolve(async (ctx) => {
-  if (!gopeed.storage.get('chrome_ext_notified')) {
-    gopeed.storage.set('chrome_ext_notified', true);
-    gopeed.logger.info(
-      '💡 Tip: install the SoundCloud→Gopeed Chrome extension for one-click downloads directly on SoundCloud pages: ' +
-        'https://chromewebstore.google.com/detail/soundcloud-gopeed/jnlfajhpbkonkfcndefbkdmpifcmlonf'
-    );
-  }
+// ponytail: guard lets this module be imported in tests without a live `gopeed` global
+if (typeof gopeed !== 'undefined') {
+  gopeed.events.onResolve(async (ctx) => {
+    if (!gopeed.storage.get('chrome_ext_notified')) {
+      gopeed.storage.set('chrome_ext_notified', true);
+      gopeed.logger.info(
+        '💡 Tip: install the SoundCloud→Gopeed Chrome extension for one-click downloads directly on SoundCloud pages: ' +
+          'https://chromewebstore.google.com/detail/soundcloud-gopeed/jnlfajhpbkonkfcndefbkdmpifcmlonf'
+      );
+    }
 
-  const clientId = await getClientId();
-  const data = await resolveUrl(ctx.req.url, clientId);
+    const clientId = await getClientId();
+    const data = await resolveUrl(ctx.req.url, clientId);
 
-  gopeed.logger.info(`Resolved kind=${data.kind} title="${data.title}"`);
+    gopeed.logger.info(`Resolved kind=${data.kind} title="${data.title}"`);
 
-  if (data.kind === 'track') {
-    const file = await buildFileFromTrack(data, clientId);
-    ctx.res = {
-      name: sanitize(data.title),
-      files: [file],
-    };
-    return;
-  }
+    if (data.kind === 'track') {
+      const file = await buildFileFromTrack(data, clientId);
+      ctx.res = {
+        name: sanitize(data.title),
+        files: [file],
+      };
+      return;
+    }
 
-  if (data.kind === 'playlist') {
-    const tracks = data.tracks || [];
-    const files = [];
+    if (data.kind === 'playlist') {
+      const tracks = data.tracks || [];
+      const files = [];
 
-    for (let i = 0; i < tracks.length; i++) {
-      let track = tracks[i];
+      for (let i = 0; i < tracks.length; i++) {
+        let track = tracks[i];
 
-      // Playlist may contain stub tracks without media — resolve them individually
-      if (!track.media) {
+        // Playlist may contain stub tracks without media — resolve them individually
+        if (!track.media) {
+          try {
+            track = await resolveUrl(track.permalink_url, clientId);
+          } catch (e) {
+            gopeed.logger.warn(`Skipping stub track "${track.title}": ${e.message}`);
+            continue;
+          }
+        }
+
         try {
-          track = await resolveUrl(track.permalink_url, clientId);
+          const file = await buildFileFromTrack(track, clientId);
+          files.push(file);
         } catch (e) {
-          gopeed.logger.warn(`Skipping stub track "${track.title}": ${e.message}`);
-          continue;
+          gopeed.logger.warn(`Skipping track "${track.title}": ${e.message}`);
         }
       }
 
-      try {
-        const file = await buildFileFromTrack(track, clientId);
-        files.push(file);
-      } catch (e) {
-        gopeed.logger.warn(`Skipping track "${track.title}": ${e.message}`);
+      if (files.length === 0) {
+        throw new Error('No downloadable tracks found in playlist');
       }
+
+      ctx.res = {
+        name: sanitize(data.title),
+        files,
+      };
+      return;
     }
 
-    if (files.length === 0) {
-      throw new Error('No downloadable tracks found in playlist');
-    }
+    throw new Error(`Unsupported SoundCloud resource type: ${data.kind}`);
+  });
+}
 
-    ctx.res = {
-      name: sanitize(data.title),
-      files,
-    };
-    return;
-  }
-
-  throw new Error(`Unsupported SoundCloud resource type: ${data.kind}`);
-});
+export { pickTranscoding };

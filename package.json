@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "webpack --mode development --watch",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "test": "node --test"
   },
   "devDependencies": {
     "@babel/core": "^7.22.20",
