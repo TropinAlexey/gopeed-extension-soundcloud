@@ -313,7 +313,7 @@ if (typeof gopeed !== 'undefined') {
       gopeed.storage.set('chrome_ext_notified', true);
       gopeed.logger.info(
         '💡 Tip: install the SoundCloud→Gopeed Chrome extension for one-click downloads directly on SoundCloud pages: ' +
-          'https://chromewebstore.google.com/detail/soundcloud-gopeed/jnlfajhpbkonkfcndefbkdmpifcmlonf'
+          'https://chromewebstore.google.com/detail/dibaaanimijeognedjonhifkigceppbh'
       );
     }
 
