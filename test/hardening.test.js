@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitize, refreshClientId, resolveMedia } from '../src/index.js';
+import { sanitize, refreshClientId, resolveMedia, trackBaseName } from '../src/index.js';
 
 const storage = new Map();
 globalThis.gopeed = {
@@ -70,4 +70,22 @@ test('resolveMedia: honours the re-resolve limit', async () => {
   resolves = 0;
   await resolveMedia(aacOnly, 'id', 'auto', true);
   assert.equal(resolves, 0);
+});
+
+test('trackBaseName: no uploader prefix when the title already names the artist', () => {
+  const user = { permalink: 'unonycmusic', username: 'UNONYC' };
+  assert.equal(trackBaseName({ title: 'SFV Acid - Dirty Martini', user }), 'SFV Acid - Dirty Martini');
+  assert.equal(trackBaseName({ title: 'SFV Acid – Dirty Martini', user }), 'SFV Acid – Dirty Martini');
+  assert.equal(
+    trackBaseName({ title: 'Mark Dekoda - Nebel', publisher_metadata: { artist: 'Mark Dekoda and Droplex' }, user }),
+    'Mark Dekoda - Nebel'
+  );
+});
+
+test('trackBaseName: adds the artist when the title has none', () => {
+  const user = { permalink: 'ilaytsa', username: 'IlayTsa' };
+  assert.equal(trackBaseName({ title: 'crashout', user }), 'IlayTsa - crashout');
+  assert.equal(trackBaseName({ title: 'Nebel', publisher_metadata: { artist: 'Droplex' }, user }), 'Droplex - Nebel');
+  assert.equal(trackBaseName({ title: 'Lo-fi', user: { permalink: 'x' } }), 'x - Lo-fi');
+  assert.equal(trackBaseName({ title: 'Solo' }), 'Solo');
 });

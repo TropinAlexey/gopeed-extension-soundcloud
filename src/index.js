@@ -323,16 +323,24 @@ async function buildFileFromTrack(track, clientId, { maxReresolves } = {}) {
 
   const ext = extFromMime(transcoding.format.mime_type);
 
-  // Format: "Artist - Title.mp3"  e.g. "YAYATI - The greatest final.mp3"
-  const artist = track.publisher_metadata?.artist || track.user?.permalink || track.user?.username || '';
-  const prefix = artist ? `${sanitize(artist)} - ` : '';
   const suffix = transcoding.snipped ? ' (preview)' : '';
   return {
-    name: `${prefix}${sanitize(track.title)}${suffix}${ext}`,
+    name: `${trackBaseName(track)}${suffix}${ext}`,
     req: {
       url: streamUrl,
     },
   };
+}
+
+// Most uploads are already titled "Artist - Title"; prefixing the uploader then gave
+// "account - Artist - Title". Add an artist only when the title has none.
+const TITLE_HAS_ARTIST_RE = /\s[-–—]\s/;
+
+function trackBaseName(track) {
+  const title = sanitize(track.title);
+  if (TITLE_HAS_ARTIST_RE.test(track.title || '')) return title;
+  const artist = track.publisher_metadata?.artist || track.user?.username || track.user?.permalink || '';
+  return artist ? `${sanitize(artist)} - ${title}` : title;
 }
 
 // Playlists only embed full data for the first few tracks; the rest are stubs
@@ -440,4 +448,4 @@ if (typeof gopeed !== 'undefined') {
   });
 }
 
-export { pickTranscoding, rankTranscodings, expandShortUrl, canonicalFromHtml, sanitize, refreshClientId, resolveMedia };
+export { pickTranscoding, rankTranscodings, expandShortUrl, canonicalFromHtml, sanitize, refreshClientId, resolveMedia, trackBaseName };

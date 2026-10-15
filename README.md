@@ -24,8 +24,8 @@ The extension resolves the audio stream automatically and starts the download.
 
 Supported links: tracks, playlists/albums (`soundcloud.com`, `www.`, `m.`), secret links (`…/s-XXXX`) and short share links from the SoundCloud app (`https://on.soundcloud.com/XXXX`).
 
-**File naming:** `Artist - Title.m4a` (or `.mp3`)  
-Example: `yayati - The greatest final.m4a`
+**File naming:** `Artist - Title.m4a` (or `.mp3`). If the track title already contains the artist (`SFV Acid - Dirty Martini`), it is used as is. Otherwise the artist is taken from the track metadata or the uploader's display name.  
+Examples: `SFV Acid - Dirty Martini.m4a`, `IlayTsa - crashout.m4a`
 
 Go+ tracks that SoundCloud only exposes as a 30-second preview are saved with a ` (preview)` suffix — uncheck them in the file list if you don't want them.
 
