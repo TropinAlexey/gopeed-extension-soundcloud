@@ -113,6 +113,50 @@ async function resolveUrl(url, clientId) {
   return scGet(`${RESOLVE_URL}?url=${encodeURIComponent(url)}`, clientId);
 }
 
+// ── Short links ───────────────────────────────────────────────────────────────
+
+const SHORT_LINK_RE = /^https?:\/\/on\.soundcloud\.com\//i;
+const FULL_LINK_RE = /^https?:\/\/(?:www\.|m\.)?soundcloud\.com\/[^?#]+/i;
+
+const isShortLink = (url) => SHORT_LINK_RE.test(url || '');
+
+// Full soundcloud.com URL without the share-tracking query (?si=…&utm_…)
+function cleanFullUrl(url) {
+  const match = (url || '').match(FULL_LINK_RE);
+  return match ? match[0] : null;
+}
+
+function canonicalFromHtml(html) {
+  const tag =
+    html.match(/<link[^>]+rel="canonical"[^>]*>/i)?.[0] || html.match(/<meta[^>]+property="og:url"[^>]*>/i)?.[0] || '';
+  return cleanFullUrl(tag.match(/(?:href|content)="([^"]+)"/i)?.[1]);
+}
+
+// on.soundcloud.com/<code> is a 302 to the full URL; api-v2 /resolve answers 404 for it.
+// Gopeed's fetch differs between versions, so try the Location header, then the final
+// response URL, then the page's canonical link.
+async function expandShortUrl(url) {
+  if (!isShortLink(url)) return url;
+
+  try {
+    const res = await fetch(url, { redirect: 'manual' });
+    await res.body?.cancel?.();
+    const full = cleanFullUrl(res.headers.get('location'));
+    if (full) return full;
+  } catch (e) {
+    gopeed.logger.debug(`Manual redirect failed for ${url}: ${e.message}`);
+  }
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    await res.body?.cancel?.();
+    throw new Error(`Short link ${url} is invalid or expired (HTTP ${res.status})`);
+  }
+  const full = (isShortLink(res.url) ? null : cleanFullUrl(res.url)) || canonicalFromHtml(await res.text());
+  if (!full) throw new Error(`Could not expand short link ${url}`);
+  return full;
+}
+
 async function getStreamUrl(transcodingUrl, clientId, trackAuthorization) {
   const url = trackAuthorization
     ? `${transcodingUrl}${transcodingUrl.includes('?') ? '&' : '?'}track_authorization=${encodeURIComponent(trackAuthorization)}`
@@ -318,7 +362,9 @@ if (typeof gopeed !== 'undefined') {
     }
 
     const clientId = await getClientId();
-    const data = await resolveUrl(ctx.req.url, clientId);
+    const url = await expandShortUrl(ctx.req.url);
+    if (url !== ctx.req.url) gopeed.logger.info(`Short link ${ctx.req.url} → ${url}`);
+    const data = await resolveUrl(url, clientId);
 
     gopeed.logger.info(`Resolved kind=${data.kind} title="${data.title}"`);
 
@@ -372,4 +418,4 @@ if (typeof gopeed !== 'undefined') {
   });
 }
 
-export { pickTranscoding, rankTranscodings };
+export { pickTranscoding, rankTranscodings, expandShortUrl, canonicalFromHtml };

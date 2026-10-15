@@ -22,6 +22,8 @@ Go to any SoundCloud URL, click track name, press button "Download":
 
 The extension resolves the audio stream automatically and starts the download.
 
+Supported links: tracks, playlists/albums (`soundcloud.com`, `www.`, `m.`), secret links (`…/s-XXXX`) and short share links from the SoundCloud app (`https://on.soundcloud.com/XXXX`).
+
 **File naming:** `Artist - Title.m4a` (or `.mp3`)  
 Example: `yayati - The greatest final.m4a`
 
@@ -42,7 +44,7 @@ Once installed, clicking the button sends the current track or playlist URL to G
 
 ## How it works
 
-1. Resolves the SoundCloud URL via the public `api-v2.soundcloud.com` API
+1. Expands `on.soundcloud.com` short links to the full URL (share tracking like `?si=…&utm_…` is dropped), then resolves it via the public `api-v2.soundcloud.com` API
 2. Extracts `client_id` automatically from SoundCloud's page scripts (cached in local storage)
 3. Selects the best audio transcoding for the chosen quality (adaptive `abr_*` playlists and 30s previews are skipped when a full-length stream exists)
 4. Fetches the signed CDN stream URL and passes it to Gopeed — an `.m3u8` playlist is downloaded by Gopeed's native HLS engine and merged into one file

@@ -4,7 +4,7 @@
   "title": "SoundCloud",
   "description": "Download tracks and playlists from SoundCloud. Pair with the Chrome extension for one-click downloads: https://chromewebstore.google.com/detail/dibaaanimijeognedjonhifkigceppbh",
   "icon": "icon.png",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "homepage": "https://github.com/TropinAlexey/gopeed-extension-soundcloud",
   "repository": {
     "url": "https://github.com/TropinAlexey/gopeed-extension-soundcloud"
@@ -16,7 +16,8 @@
         "urls": [
           "*://soundcloud.com/*/*",
           "*://www.soundcloud.com/*/*",
-          "*://m.soundcloud.com/*/*"
+          "*://m.soundcloud.com/*/*",
+          "*://on.soundcloud.com/*"
         ]
       },
       "entry": "dist/index.js"
