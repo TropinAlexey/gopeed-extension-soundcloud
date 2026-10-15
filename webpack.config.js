@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import GopeedPolyfillPlugin from 'gopeed-polyfill-webpack-plugin';
 import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 
 const __dirname = fileURLToPath(import.meta.url);
@@ -12,7 +11,6 @@ export default {
     path: path.resolve(__dirname, '../dist'),
   },
   plugins: [
-    new GopeedPolyfillPlugin(),
     new CleanWebpackPlugin({
       protectWebpackAssets: false,
       cleanAfterEveryBuildPatterns: ['*.LICENSE.txt'],
