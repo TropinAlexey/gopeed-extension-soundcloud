@@ -60,6 +60,16 @@ async function extractClientId() {
 
 // ── SoundCloud API ────────────────────────────────────────────────────────────
 
+// 403s from parallel playlist workers arrive together: share one re-extraction per rejected id
+let clientIdRefresh = null;
+
+function refreshClientId(rejectedId) {
+  if (!clientIdRefresh || clientIdRefresh.rejectedId !== rejectedId) {
+    clientIdRefresh = { rejectedId, promise: extractClientId().catch(() => FALLBACK_CLIENT_ID) };
+  }
+  return clientIdRefresh.promise;
+}
+
 const sleep = (ms) => new Promise((resolve) => (typeof setTimeout === 'function' ? setTimeout(resolve, ms) : resolve()));
 const TRANSIENT_RETRIES = 2;
 
@@ -89,11 +99,14 @@ async function scGet(url, clientId, { _retried = false, _attempt = 0 } = {}) {
       if (!_retried) {
         // Re-extract fresh client_id and retry once automatically
         gopeed.logger.warn(`client_id rejected (${res.status}), re-extracting and retrying...`);
-        const freshId = await extractClientId().catch(() => FALLBACK_CLIENT_ID);
+        const freshId = await refreshClientId(clientId);
         return scGet(url, freshId, { _retried: true, _attempt });
       }
 
-      throw new Error('client_id invalid even after re-extraction. Set it manually in extension settings.');
+      throw new Error(
+        `SoundCloud denied access (${res.status}) even with a fresh client_id — the track may be ` +
+          'region-restricted, or set client_id manually in extension settings.'
+      );
     }
     // api-v2 occasionally answers 404/429/5xx for perfectly valid resources — retry before giving up
     const transient = res.status === 404 || res.status === 429 || res.status >= 500;
@@ -231,23 +244,32 @@ function extFromMime(mimeType) {
   return '.mp3';
 }
 
+// Titles are author-controlled: a playlist named ".." would otherwise become a folder one level
+// above the download dir (Gopeed's own SafeFilename keeps dots), and "   " an empty name.
 function sanitize(name) {
-  return (name || 'track').replace(/[/\\?%*:|"<>]/g, '-').trim();
+  const clean = (name || '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .replace(/^[\s.]+/, '')
+    .trim();
+  return clean || 'track';
 }
 
 // ── Track resolution ──────────────────────────────────────────────────────────
 
 // api-v2 returns a random subset of transcodings per request (progressive MP3 shows up
 // in roughly every other response), so re-resolve a few times when the wanted format is missing.
+// Playlists get a single retry so hundreds of tracks don't multiply into a 429 storm.
 const MEDIA_RERESOLVES = 3;
+const PLAYLIST_MEDIA_RERESOLVES = 1;
 
-async function resolveMedia(track, clientId, quality, hls) {
+async function resolveMedia(track, clientId, quality, hls, maxReresolves = MEDIA_RERESOLVES) {
   const wantsMp3 = quality === 'progressive' || !hls;
   for (let attempt = 0; ; attempt++) {
     const ranked = rankTranscodings(track.media?.transcodings, quality, { hls });
     const satisfied = ranked.length > 0 && (!wantsMp3 || isMp3(ranked[0]));
-    if (satisfied || attempt >= MEDIA_RERESOLVES || !track.permalink_url) return { track, ranked };
-    gopeed.logger.info(`Track "${track.title}": preferred format missing, re-resolving (${attempt + 1}/${MEDIA_RERESOLVES})`);
+    if (satisfied || attempt >= maxReresolves || !track.permalink_url) return { track, ranked };
+    gopeed.logger.info(`Track "${track.title}": preferred format missing, re-resolving (${attempt + 1}/${maxReresolves})`);
     try {
       track = await resolveUrl(track.permalink_url, clientId);
     } catch (e) {
@@ -256,14 +278,14 @@ async function resolveMedia(track, clientId, quality, hls) {
   }
 }
 
-async function buildFileFromTrack(track, clientId) {
+async function buildFileFromTrack(track, clientId, { maxReresolves } = {}) {
   if (track.policy === 'BLOCK') {
     throw new Error(`Track "${track.title}" is not available in your region`);
   }
 
   const quality = gopeed.settings.quality || 'auto';
   const hls = supportsHls();
-  const resolved = await resolveMedia(track, clientId, quality, hls);
+  const resolved = await resolveMedia(track, clientId, quality, hls, maxReresolves);
   track = resolved.track;
 
   if (resolved.ranked.length === 0) {
@@ -391,7 +413,7 @@ if (typeof gopeed !== 'undefined') {
         }
 
         try {
-          return await buildFileFromTrack(track, clientId);
+          return await buildFileFromTrack(track, clientId, { maxReresolves: PLAYLIST_MEDIA_RERESOLVES });
         } catch (e) {
           gopeed.logger.warn(`Skipping track "${track.title || track.id}": ${e.message}`);
           return null;
@@ -418,4 +440,4 @@ if (typeof gopeed !== 'undefined') {
   });
 }
 
-export { pickTranscoding, rankTranscodings, expandShortUrl, canonicalFromHtml };
+export { pickTranscoding, rankTranscodings, expandShortUrl, canonicalFromHtml, sanitize, refreshClientId, resolveMedia };
